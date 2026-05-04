@@ -1,0 +1,15 @@
+# Theme based on the kiro.dev moodboard (extracted via this tool).
+# Kiro signature: pure black canvas, dark elevated surfaces, vibrant
+# purple accent (#9147ff), off-white text, tight 4px radii on inputs
+# and pill (9999px) buttons.
+
+[theme]
+base = "dark"
+primaryColor = "#9147ff"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#19161d"
+textColor = "#fafafa"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false

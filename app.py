@@ -17,114 +17,393 @@ OUTPUTS_DIR = ROOT / "outputs"
 
 st.set_page_config(
     page_title="URL Style Extractor",
-    page_icon="🎨",
+    page_icon=":art:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 
+# ---------- Icons (Lucide, MIT — inline SVG so they recolor with the theme) ----------
+
+_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+    'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" '
+    'stroke-linecap="round" stroke-linejoin="round" '
+    'style="vertical-align:-3px;flex-shrink:0">{body}</svg>'
+)
+
+ICON_BODIES = {
+    "palette": (
+        '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>'
+        '<circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>'
+        '<circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>'
+        '<circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>'
+        '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 '
+        "0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 "
+        "1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z\"/>"
+    ),
+    "image": (
+        '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>'
+        '<circle cx="9" cy="9" r="2"/>'
+        '<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'
+    ),
+    "type": (
+        '<polyline points="4 7 4 4 20 4 20 7"/>'
+        '<line x1="9" x2="15" y1="20" y2="20"/>'
+        '<line x1="12" x2="12" y1="4" y2="20"/>'
+    ),
+    "ruler": (
+        '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7'
+        'a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/>'
+        '<path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/>'
+        '<path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>'
+    ),
+    "braces": (
+        '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/>'
+        '<path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>'
+    ),
+    "download": (
+        '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
+        '<polyline points="7 10 12 15 17 10"/>'
+        '<line x1="12" x2="12" y1="15" y2="3"/>'
+    ),
+    "globe": (
+        '<circle cx="12" cy="12" r="10"/>'
+        '<path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>'
+        '<path d="M2 12h20"/>'
+    ),
+    "file-text": (
+        '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>'
+        '<polyline points="14 2 14 8 20 8"/>'
+        '<line x1="16" x2="8" y1="13" y2="13"/>'
+        '<line x1="16" x2="8" y1="17" y2="17"/>'
+        '<line x1="10" x2="8" y1="9" y2="9"/>'
+    ),
+    "history": (
+        '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>'
+        '<path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'
+    ),
+    "external-link": (
+        '<path d="M15 3h6v6"/><path d="M10 14 21 3"/>'
+        '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'
+    ),
+}
+
+
+def icon(name: str, size: int = 18) -> str:
+    body = ICON_BODIES.get(name, "")
+    return _SVG.format(size=size, body=body)
+
+
+# ---------- CSS ----------
+
 CUSTOM_CSS = """
 <style>
-  .block-container { padding-top: 2rem; max-width: 1200px; }
+  /* Fonts — closest free matches to Kiro's AWS Diatype family */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-  /* Hide Streamlit chrome we don't need */
+  /* Kiro design tokens */
+  :root {
+    --k-bg-0: #000000;
+    --k-bg-1: #19161d;
+    --k-bg-2: #28242e;
+    --k-bg-3: #4a464f;
+    --k-fg-0: #fafafa;
+    --k-fg-1: #c1bec6;
+    --k-fg-2: #928d9a;
+    --k-fg-3: #5e5966;
+    --k-accent: #9147ff;
+    --k-accent-light: #c59eff;
+    --k-success: #80ffb5;
+    --k-r-sm: 4px;
+    --k-r-md: 16px;
+    --k-r-lg: 32px;
+    --k-r-pill: 9999px;
+  }
+
+  html, body, [data-testid="stAppViewContainer"], .stMarkdown, p, span, div, label {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  h1, h2, h3, h4, h5 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    letter-spacing: -0.025em !important;
+    color: var(--k-fg-0);
+  }
+  code, pre, .swatch-meta, .swatch-hex, .swatch-w, .chip, .type-tag, .type-meta {
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, monospace !important;
+  }
+
+  .block-container { padding-top: 2rem; max-width: 1200px; }
   #MainMenu, footer { visibility: hidden; }
   header[data-testid="stHeader"] { background: transparent; }
 
-  /* Hero */
+  /* Hero — dark surface with subtle purple radial glow */
   .hero {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-    border-radius: 18px;
-    padding: 2.5rem 2.25rem;
-    margin-bottom: 1.75rem;
-    color: white;
-    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.25);
+    position: relative;
+    background: var(--k-bg-1);
+    background-image:
+      radial-gradient(circle at top right, rgba(145, 71, 255, 0.20), transparent 55%),
+      radial-gradient(circle at bottom left, rgba(197, 158, 255, 0.05), transparent 50%);
+    border: 1px solid var(--k-bg-2);
+    border-radius: var(--k-r-md);
+    padding: 2.75rem 2.25rem;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--k-accent-light);
+    margin-bottom: 0.85rem;
   }
   .hero h1 {
-    color: white !important;
-    margin: 0 0 0.5rem 0;
-    font-size: 2.25rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    color: var(--k-fg-0) !important;
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    font-size: 2.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 1.05 !important;
+    margin: 0 0 0.6rem 0 !important;
   }
   .hero p {
-    color: rgba(255,255,255,0.92);
+    color: var(--k-fg-1);
+    font-size: 1.02rem;
+    line-height: 1.55;
+    max-width: 620px;
     margin: 0;
-    font-size: 1.05rem;
-    line-height: 1.5;
   }
 
-  /* Section header */
+  /* Section eyebrow — JetBrains Mono uppercase, purple icon */
   .section-h {
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin: 1.5rem 0 0.75rem 0;
-    letter-spacing: -0.01em;
-    opacity: 0.95;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin: 2rem 0 1rem 0;
+    color: var(--k-fg-1);
   }
+  .section-h svg { color: var(--k-accent-light); opacity: 1; }
 
-  /* Color cards */
+  /* Color swatches — tight 4px Kiro radius */
   .swatch {
-    border-radius: 12px;
+    border-radius: var(--k-r-sm);
     overflow: hidden;
-    border: 1px solid rgba(128,128,128,0.18);
-    margin-bottom: 4px;
+    border: 1px solid var(--k-bg-2);
+    background: var(--k-bg-1);
+    margin-bottom: 8px;
   }
-  .swatch-block { height: 92px; width: 100%; }
+  .swatch-block { height: 80px; width: 100%; }
   .swatch-meta {
-    padding: 8px 12px;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 0.82em;
-    background: rgba(128,128,128,0.05);
+    padding: 8px 10px;
+    font-size: 0.74em !important;
+    background: var(--k-bg-1);
   }
-  .swatch-hex { font-weight: 600; display: block; }
-  .swatch-w { opacity: 0.55; font-size: 0.85em; }
+  .swatch-hex { color: var(--k-fg-0) !important; font-weight: 500; display: block; }
+  .swatch-w { color: var(--k-fg-3) !important; font-size: 0.85em; }
 
-  /* Type scale samples — render in actual fonts */
+  /* Type scale */
   .type-sample {
-    padding: 0.85rem 0;
-    border-bottom: 1px solid rgba(128,128,128,0.12);
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--k-bg-2);
   }
   .type-sample:last-child { border-bottom: none; }
   .type-tag {
     display: inline-block;
-    font-family: ui-monospace, monospace;
-    font-size: 0.72em;
-    padding: 2px 8px;
-    background: rgba(128,128,128,0.12);
-    border-radius: 5px;
+    font-size: 0.7em !important;
+    padding: 3px 9px;
+    background: var(--k-bg-2);
+    color: var(--k-accent-light);
+    border-radius: var(--k-r-sm);
     margin-right: 0.5rem;
     vertical-align: middle;
   }
   .type-meta {
-    opacity: 0.55;
-    font-size: 0.78em;
-    font-family: ui-monospace, monospace;
+    color: var(--k-fg-3) !important;
+    font-size: 0.76em !important;
   }
   .type-preview {
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
+    color: var(--k-fg-0);
     line-height: 1.2;
   }
 
-  /* Token chips */
+  /* Chips */
   .chip {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 5px 10px;
     margin: 0 6px 6px 0;
-    background: rgba(128,128,128,0.1);
-    border: 1px solid rgba(128,128,128,0.18);
-    border-radius: 6px;
-    font-family: ui-monospace, monospace;
-    font-size: 0.82em;
+    background: var(--k-bg-1);
+    border: 1px solid var(--k-bg-2);
+    border-radius: var(--k-r-sm);
+    font-size: 0.78em !important;
+    color: var(--k-fg-1);
   }
-  .chip .count { opacity: 0.55; margin-left: 6px; }
+  .chip .count { color: var(--k-fg-3); margin-left: 8px; }
 
-  /* Sidebar tweaks */
-  [data-testid="stSidebar"] h2 { margin-top: 0; }
-  [data-testid="stSidebar"] .stButton button {
-    text-align: left;
-    justify-content: flex-start;
+  /* Site meta link */
+  .site-meta a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--k-accent-light) !important;
+    font-size: 0.88em;
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace !important;
   }
+  .site-meta a:hover { color: var(--k-fg-0) !important; }
+
+  /* Buttons — Kiro pill-shape */
+  .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+    border-radius: var(--k-r-pill) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.005em !important;
+    transition: all 0.15s ease !important;
+    padding: 0.45rem 1.15rem !important;
+  }
+  .stButton > button[kind="primary"],
+  .stFormSubmitButton > button[kind="primary"] {
+    background: var(--k-accent) !important;
+    border-color: var(--k-accent) !important;
+    color: #fafafa !important;
+  }
+  .stButton > button[kind="primary"]:hover,
+  .stFormSubmitButton > button[kind="primary"]:hover {
+    background: var(--k-accent-light) !important;
+    border-color: var(--k-accent-light) !important;
+    color: var(--k-bg-0) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(145, 71, 255, 0.25);
+  }
+  .stDownloadButton > button {
+    background: var(--k-bg-1) !important;
+    border: 1px solid var(--k-bg-2) !important;
+    color: var(--k-fg-0) !important;
+  }
+  .stDownloadButton > button:hover {
+    background: var(--k-bg-2) !important;
+    border-color: var(--k-accent) !important;
+    color: var(--k-fg-0) !important;
+  }
+
+  /* Text input */
+  .stTextInput > div > div > input,
+  .stTextInput input {
+    background: var(--k-bg-1) !important;
+    border: 1px solid var(--k-bg-2) !important;
+    border-radius: var(--k-r-sm) !important;
+    color: var(--k-fg-0) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.92em !important;
+  }
+  .stTextInput input:focus {
+    border-color: var(--k-accent) !important;
+    box-shadow: 0 0 0 3px rgba(145, 71, 255, 0.18) !important;
+  }
+
+  /* Sidebar */
+  [data-testid="stSidebar"] {
+    background: var(--k-bg-1) !important;
+    border-right: 1px solid var(--k-bg-2) !important;
+  }
+  [data-testid="stSidebar"] h2 { margin-top: 0; font-size: 1rem; }
+  [data-testid="stSidebar"] .stButton button {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.82em !important;
+    font-weight: 400 !important;
+    color: var(--k-fg-1) !important;
+    border-radius: var(--k-r-sm) !important;
+    padding: 5px 10px !important;
+  }
+  [data-testid="stSidebar"] .stButton button:hover {
+    background: var(--k-bg-2) !important;
+    border-color: var(--k-bg-2) !important;
+    color: var(--k-fg-0) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  [data-testid="stSidebar"] .section-h { margin-top: 0.5rem !important; }
+
+  .sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+    color: var(--k-fg-0);
+  }
+  .sidebar-title svg { color: var(--k-accent-light); }
+
+  /* Status line in extraction progress */
+  .status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.3rem 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--k-fg-1);
+    font-size: 0.92em;
+  }
+  .status-line svg { color: var(--k-accent-light); }
+
+  /* Code blocks */
+  [data-testid="stCodeBlock"], pre {
+    background: var(--k-bg-1) !important;
+    border: 1px solid var(--k-bg-2) !important;
+    border-radius: var(--k-r-sm) !important;
+  }
+  [data-testid="stCodeBlock"] code { color: var(--k-fg-1) !important; }
+
+  /* Status / alert / info boxes */
+  [data-testid="stAlert"] {
+    background: var(--k-bg-1) !important;
+    border: 1px solid var(--k-bg-2) !important;
+    border-left: 3px solid var(--k-accent) !important;
+    border-radius: var(--k-r-sm) !important;
+  }
+  [data-testid="stStatus"] {
+    background: var(--k-bg-1) !important;
+    border: 1px solid var(--k-bg-2) !important;
+    border-radius: var(--k-r-sm) !important;
+  }
+
+  /* Images get a light frame */
+  [data-testid="stImage"] img {
+    border-radius: var(--k-r-md);
+    border: 1px solid var(--k-bg-2);
+  }
+
+  /* Expander */
+  [data-testid="stExpander"] {
+    background: var(--k-bg-1) !important;
+    border: 1px solid var(--k-bg-2) !important;
+    border-radius: var(--k-r-sm) !important;
+  }
+  [data-testid="stExpander"] summary { font-family: 'Inter', sans-serif; }
+
+  /* Dataframe — when used */
+  [data-testid="stDataFrame"] { border-radius: var(--k-r-sm); }
+
+  /* Captions and small text */
+  .stCaption, [data-testid="stCaptionContainer"] { color: var(--k-fg-3) !important; }
+
+  /* Links */
+  a { color: var(--k-accent-light); }
+  a:hover { color: var(--k-fg-0); }
 </style>
 """
 
@@ -147,11 +426,7 @@ def domain_for(url: str) -> str:
 def run_extract(url: str, out_dir: Path) -> tuple[bool, str]:
     proc = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "extract.py"), url, str(out_dir)],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        cwd=ROOT,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT,
     )
     if proc.returncode != 0:
         return False, proc.stderr or proc.stdout
@@ -161,11 +436,7 @@ def run_extract(url: str, out_dir: Path) -> tuple[bool, str]:
 def run_render(json_path: Path) -> tuple[bool, str]:
     proc = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "render_moodboard.py"), str(json_path)],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        cwd=ROOT,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT,
     )
     if proc.returncode != 0:
         return False, proc.stderr or proc.stdout
@@ -182,13 +453,14 @@ def make_zip(out_dir: Path) -> bytes:
 
 
 def inject_google_fonts(urls: list[str]) -> None:
-    """Load the page's Google Fonts so the type-scale preview renders correctly."""
     if not urls:
         return
-    links = "\n".join(
-        f'<link rel="stylesheet" href="{u}">' for u in urls
-    )
+    links = "\n".join(f'<link rel="stylesheet" href="{u}">' for u in urls)
     st.markdown(links, unsafe_allow_html=True)
+
+
+def section_header(name: str, label: str) -> None:
+    st.markdown(f'<div class="section-h">{icon(name)}<span>{label}</span></div>', unsafe_allow_html=True)
 
 
 def render_swatches(colors: list[dict], cols_per_row: int = 6) -> None:
@@ -258,36 +530,37 @@ def render_results(out_dir: Path, data: dict) -> None:
     inject_google_fonts(data.get("googleFonts", []))
 
     st.markdown(f"### {data['title'] or '—'}")
-    st.markdown(f"<a href='{data['url']}' target='_blank' style='opacity:0.7;font-size:0.9em'>{data['url']}</a>", unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="site-meta"><a href="{data["url"]}" target="_blank">'
+        f'{data["url"]}{icon("external-link", 14)}</a></div>',
+        unsafe_allow_html=True,
+    )
 
     fold = out_dir / "screenshot-fold.png"
     if fold.exists():
         st.image(str(fold), caption="Above the fold (1440×900)", use_container_width=True)
 
-    # Colors
-    st.markdown('<div class="section-h">🎨 Foreground colors — text, icons, borders</div>', unsafe_allow_html=True)
+    section_header("palette", "Foreground colors — text, icons, borders")
     render_swatches(data["colors"])
 
-    st.markdown('<div class="section-h">🖼️ Background colors — surfaces, fills</div>', unsafe_allow_html=True)
+    section_header("image", "Background colors — surfaces, fills")
     render_swatches(data["backgrounds"])
 
-    # Typography
-    st.markdown('<div class="section-h">🔤 Typography</div>', unsafe_allow_html=True)
+    section_header("type", "Typography")
     if data["googleFonts"]:
-        st.markdown("**Google Fonts loaded by the page:**")
+        st.markdown("**Google Fonts loaded by the page**")
         for f in data["googleFonts"]:
             st.markdown(f"- [{f}]({f})")
 
     if data["fonts"]:
-        st.markdown("**Top font-families (ranked by usage area):**")
+        st.markdown("**Top font-families (ranked by usage area)**")
         for f in data["fonts"]:
             st.markdown(f"- `{f['value']}` — weight {f['weight']:.0f}")
 
-    st.markdown('<div class="section-h">Type scale — rendered in the actual fonts</div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top:1rem;font-size:0.85em;opacity:0.7">Type scale rendered in the actual fonts</div>', unsafe_allow_html=True)
     render_type_scale(data["samples"])
 
-    # Tokens grid
-    st.markdown('<div class="section-h">📐 Design tokens</div>', unsafe_allow_html=True)
+    section_header("ruler", "Design tokens")
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("**Border radii**")
@@ -304,7 +577,7 @@ def render_results(out_dir: Path, data: dict) -> None:
             st.caption("None detected.")
 
     if data.get("cssVars"):
-        st.markdown('<div class="section-h">🎯 CSS custom properties</div>', unsafe_allow_html=True)
+        section_header("braces", "CSS custom properties")
         css = ":root {\n" + "\n".join(
             f"  {name}: {val};" for name, val in data["cssVars"].items()
         ) + "\n}"
@@ -319,15 +592,14 @@ def render_results(out_dir: Path, data: dict) -> None:
         with st.expander("Full-page screenshot"):
             st.image(str(full), use_container_width=True)
 
-    # Downloads
-    st.markdown('<div class="section-h">⬇️ Export</div>', unsafe_allow_html=True)
+    section_header("download", "Export")
     moodboard = out_dir / "moodboard.md"
     styles_json = out_dir / "styles.json"
 
     dl1, dl2, dl3 = st.columns(3)
     if moodboard.exists():
         dl1.download_button(
-            "📄 moodboard.md",
+            "moodboard.md",
             data=moodboard.read_bytes(),
             file_name="moodboard.md",
             mime="text/markdown",
@@ -335,14 +607,14 @@ def render_results(out_dir: Path, data: dict) -> None:
         )
     if styles_json.exists():
         dl2.download_button(
-            "🧾 styles.json",
+            "styles.json",
             data=styles_json.read_bytes(),
             file_name="styles.json",
             mime="application/json",
             use_container_width=True,
         )
     dl3.download_button(
-        "📦 Everything as zip",
+        "Download as ZIP",
         data=make_zip(out_dir),
         file_name=f"{out_dir.name}-moodboard.zip",
         mime="application/zip",
@@ -352,10 +624,17 @@ def render_results(out_dir: Path, data: dict) -> None:
 
 # ---------- Sidebar ----------
 with st.sidebar:
-    st.markdown("## 🎨 URL Style Extractor")
+    st.markdown(
+        f'<div class="sidebar-title">{icon("palette", 20)}<span>URL Style Extractor</span></div>',
+        unsafe_allow_html=True,
+    )
     st.caption("Reverse-engineer the visual style of any website.")
     st.divider()
-    st.markdown("### History")
+
+    st.markdown(
+        f'<div class="section-h" style="margin-top:0">{icon("history")}<span>History</span></div>',
+        unsafe_allow_html=True,
+    )
     if OUTPUTS_DIR.exists():
         history = sorted(
             [d for d in OUTPUTS_DIR.iterdir() if d.is_dir() and (d / "styles.json").exists()],
@@ -374,9 +653,10 @@ with st.sidebar:
 
     st.divider()
     st.markdown(
-        '<div style="opacity:0.5;font-size:0.8em">'
-        '<a href="https://github.com/0ldManPlaying/url-style-extractor" target="_blank" style="color:inherit">GitHub repo →</a>'
-        "</div>",
+        f'<div style="opacity:0.5;font-size:0.8em">'
+        f'<a href="https://github.com/0ldManPlaying/url-style-extractor" target="_blank" '
+        f'style="color:inherit;display:inline-flex;align-items:center;gap:0.35rem;text-decoration:none">'
+        f'GitHub repo{icon("external-link", 13)}</a></div>',
         unsafe_allow_html=True,
     )
 
@@ -385,6 +665,7 @@ with st.sidebar:
 st.markdown(
     """
 <div class="hero">
+  <div class="hero-eyebrow">Style extraction · v1</div>
   <h1>URL Style Extractor</h1>
   <p>Extract the visual DNA from any live website — color palette, fonts, type scale,
   spacing, shadows, design tokens, and screenshots — in one click.</p>
@@ -396,11 +677,9 @@ st.markdown(
 with st.form("extract_form", clear_on_submit=False):
     col_url, col_btn = st.columns([4, 1])
     url_input = col_url.text_input(
-        "URL",
-        placeholder="https://stripe.com",
-        label_visibility="collapsed",
+        "URL", placeholder="https://stripe.com", label_visibility="collapsed",
     )
-    submit = col_btn.form_submit_button("Extract →", type="primary", use_container_width=True)
+    submit = col_btn.form_submit_button("Extract", type="primary", use_container_width=True)
 
 selected_dir: Path | None = None
 
@@ -408,19 +687,25 @@ if submit and url_input:
     url = normalize_url(url_input)
     out_dir = OUTPUTS_DIR / domain_for(url)
     with st.status(f"Extracting **{url}** …", expanded=True) as status:
-        st.write("🌐 Launching headless Chromium and loading the page…")
+        st.markdown(
+            f'<div class="status-line">{icon("globe", 16)}<span>Launching headless Chromium and loading the page…</span></div>',
+            unsafe_allow_html=True,
+        )
         ok, msg = run_extract(url, out_dir)
         if not ok:
             status.update(label="Extraction failed", state="error")
             st.error(msg)
             st.stop()
-        st.write("📝 Generating markdown moodboard…")
+        st.markdown(
+            f'<div class="status-line">{icon("file-text", 16)}<span>Generating markdown moodboard…</span></div>',
+            unsafe_allow_html=True,
+        )
         ok2, msg2 = run_render(out_dir / "styles.json")
         if not ok2:
             status.update(label="Rendering failed", state="error")
             st.error(msg2)
             st.stop()
-        status.update(label="Done!", state="complete")
+        status.update(label="Done", state="complete")
     st.session_state["selected_dir"] = str(out_dir)
     selected_dir = out_dir
 elif "selected_dir" in st.session_state:
@@ -431,6 +716,6 @@ if selected_dir and (selected_dir / "styles.json").exists():
     render_results(selected_dir, data)
 else:
     st.info(
-        "Enter a URL above and hit **Extract**. The first run can take 10-30 seconds "
+        "Enter a URL above and click **Extract**. The first run can take 10-30 seconds "
         "while Chromium loads the page."
     )
