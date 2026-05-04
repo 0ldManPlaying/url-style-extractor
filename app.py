@@ -16,6 +16,35 @@ import streamlit as st
 ROOT = Path(__file__).parent
 OUTPUTS_DIR = ROOT / "outputs"
 
+
+@st.cache_resource(show_spinner="First-run setup: installing Chromium for Playwright (one-time, ~150 MB)…")
+def _ensure_chromium() -> bool:
+    """Install Playwright Chromium on cloud-deploy targets where it's missing.
+
+    Local Windows users get Chromium via start.bat; Streamlit Community Cloud
+    and similar Linux hosts won't have it pre-installed. Cached as a resource
+    so the install only runs once per app cold-start.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            exe = p.chromium.executable_path
+            if exe and Path(exe).exists():
+                return True
+    except Exception:
+        pass
+
+    subprocess.run(
+        [sys.executable, "-m", "playwright", "install", "chromium"],
+        check=False,
+    )
+    return True
+
+
+_ensure_chromium()
+
+
 st.set_page_config(
     page_title="URL Style Extractor",
     page_icon=":art:",

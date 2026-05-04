@@ -90,6 +90,29 @@ Outputs land in `outputs/<domain>/`:
 - `screenshot-fold.png` — above-the-fold capture
 - `screenshot-full.png` — full-page capture
 
+## Deploying to Streamlit Community Cloud
+
+The repo is already cloud-ready:
+
+- [`requirements.txt`](requirements.txt) — Python deps (`streamlit`, `playwright`, `starlette` pinned)
+- [`packages.txt`](packages.txt) — Linux apt packages Chromium needs (`libnss3`, `libgbm1`, etc.)
+- [`app.py`](app.py) — calls `playwright install chromium` lazily on first launch (cached as a resource so it only runs once per cold start, ~30 s and ~150 MB)
+- [`.streamlit/config.toml`](.streamlit/config.toml) — locks the dark Kiro theme
+
+To deploy:
+
+1. Go to <https://share.streamlit.io> and sign in with the GitHub account that owns this repo.
+2. Click **New app**, pick `0ldManPlaying/url-style-extractor`, branch `main`, main file `app.py`.
+3. Click **Deploy**.
+4. First boot takes 1-2 minutes (apt install + chromium download). Subsequent visits are instant.
+
+Caveats for the cloud version:
+- Bot-detection on Cloudflare-protected sites is more aggressive against datacenter IPs than against your home IP.
+- Streamlit Cloud's filesystem is ephemeral — extractions are lost when the container restarts. The History sidebar only shows the current session's runs.
+- Free-tier RAM (~1 GB) is enough for most pages but heavy SPAs may OOM.
+
+For long-term use, running locally via `start.bat` is more reliable.
+
 ## Using as a Claude Code Skill
 
 This repo *is* a skill. Drop it into your `.claude/skills/` directory (or install it as a plugin) and Claude will trigger it automatically when you give it a URL and ask for styles, a moodboard, or design tokens.
