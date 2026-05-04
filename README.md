@@ -16,14 +16,26 @@ Given a URL, it:
 6. Captures above-the-fold and full-page screenshots.
 7. Emits `styles.json`, then renders it to `moodboard.md` with hex swatches and a tokens block.
 
-## Setup
+## Quick start — graphical UI (recommended)
+
+Double-click **`start.bat`** (Windows). On first run it installs the dependencies; on every run it launches a Streamlit web app in your browser. Paste a URL, hit **Extract**, and the moodboard renders inline with color swatches, type scale, and downloadable `moodboard.md` / `styles.json` / zip.
+
+The sidebar keeps a history of every URL you've extracted, so you can flip back and forth without re-running.
+
+## Setup (manual / non-Windows)
 
 ```bash
 pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-## Usage
+Then either run the UI:
+
+```bash
+python -m streamlit run app.py
+```
+
+Or use the CLI directly:
 
 ```bash
 # 1. extract
