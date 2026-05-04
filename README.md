@@ -1,8 +1,12 @@
 # URL Style Extractor
 
-A Claude Code Skill (and standalone Streamlit app) that reverse-engineers the visual design language of any live website. Paste a URL, hit Extract, and walk away with a hex-coded color palette, the type scale rendered in the page's actual fonts, design tokens, and screenshots — packaged as a markdown moodboard.
+[![Live demo](https://img.shields.io/badge/Live_demo-url--style--extractor.streamlit.app-9147ff?style=for-the-badge&logo=streamlit&logoColor=white)](https://url-style-extractor.streamlit.app/)
+[![Release](https://img.shields.io/github/v/release/0ldManPlaying/url-style-extractor?style=for-the-badge&color=c59eff)](https://github.com/0ldManPlaying/url-style-extractor/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-19161d?style=for-the-badge)](LICENSE)
 
-The moodboard is meant as input for building a new design system, a follow-up Skill, a redesign brief, or a style guide.
+A Claude Code Skill (and standalone Streamlit app) that reverse-engineers the visual design language of any live website. Paste a URL, hit Extract, and walk away with a hex-coded color palette, the type scale rendered in the page's actual fonts, design tokens, and screenshots — packaged as a markdown moodboard plus a ready-to-drop Claude Code Skill.
+
+> **Try it now:** <https://url-style-extractor.streamlit.app/> — no install required.
 
 ![Home screen](docs/screenshots/01-home.png)
 
@@ -92,7 +96,7 @@ Outputs land in `outputs/<domain>/`:
 
 ## Deploying to Streamlit Community Cloud
 
-The repo is already cloud-ready:
+The hosted version lives at <https://url-style-extractor.streamlit.app/>. To run your own deploy from a fork, the repo is already cloud-ready:
 
 - [`requirements.txt`](requirements.txt) — Python deps (`streamlit`, `playwright`, `starlette` pinned)
 - [`packages.txt`](packages.txt) — Linux apt packages Chromium needs (`libnss3`, `libgbm1`, etc.)
