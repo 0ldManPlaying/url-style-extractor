@@ -37,7 +37,15 @@ Trigger when the user gives a URL and asks anything like:
 
    Output: `outputs/<domain>/moodboard.md`.
 
-4. **Show the result** to the user. Use the moodboard as the basis for any further work (new Skill, design guide, redesign brief, side-by-side comparison).
+4. **Generate the style guide** — turns the JSON into a Skill-format markdown the user can drop into `.claude/skills/`:
+
+   ```bash
+   python scripts/generate_styleguide.py outputs/<domain>/styles.json
+   ```
+
+   Output: `outputs/<domain>/styleguide.md` with frontmatter (name, description), color tokens mapped to roles (`--bg-0`, `--fg-0`, `--accent`, etc.), type scale, geometry rules, and "how to apply this style" guidance.
+
+5. **Show the result** to the user. The `styleguide.md` is usually what they want — it's a ready-to-use skill that captures the source site's visual DNA. Offer the moodboard as well for human review.
 
 ## Setup (first run only)
 

@@ -85,6 +85,17 @@ async def capture(history_target: str) -> None:
         except Exception as e:
             print(f"  (tokens scroll failed: {e})")
 
+        # Compare tab — pick two history sites side-by-side
+        try:
+            await page.evaluate("window.scrollTo(0, 0)")
+            await page.wait_for_timeout(400)
+            await page.get_by_role("tab", name="Compare two sites").click(timeout=5_000)
+            await page.wait_for_timeout(2500)
+            await page.screenshot(path=str(SHOTS / "05-compare.png"), full_page=False)
+            print(f"  saved {SHOTS / '05-compare.png'}")
+        except Exception as e:
+            print(f"  (compare screenshot failed: {e})")
+
         await browser.close()
 
 

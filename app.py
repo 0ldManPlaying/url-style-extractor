@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import subprocess
 import sys
 import zipfile
@@ -86,6 +87,18 @@ ICON_BODIES = {
     "external-link": (
         '<path d="M15 3h6v6"/><path d="M10 14 21 3"/>'
         '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'
+    ),
+    "compare": (
+        '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/>'
+        '<path d="M13 6h3a2 2 0 0 1 2 2v7"/>'
+        '<path d="M11 18H8a2 2 0 0 1-2-2V9"/>'
+    ),
+    "wand": (
+        '<path d="M15 4V2"/><path d="M15 16v-2"/>'
+        '<path d="M8 9h2"/><path d="M20 9h2"/>'
+        '<path d="M17.8 11.8 19 13"/>'
+        '<path d="M15 9h.01"/><path d="M17.8 6.2 19 5"/>'
+        '<path d="m3 21 9-9"/><path d="M12.2 6.2 11 5"/>'
     ),
 }
 
@@ -404,6 +417,36 @@ CUSTOM_CSS = """
   /* Links */
   a { color: var(--k-accent-light); }
   a:hover { color: var(--k-fg-0); }
+
+  /* Tabs */
+  [data-testid="stTabs"] [role="tablist"] {
+    gap: 4px;
+    border-bottom: 1px solid var(--k-bg-2);
+    margin-bottom: 1rem;
+  }
+  [data-testid="stTabs"] [role="tab"] {
+    background: transparent !important;
+    border-radius: var(--k-r-sm) var(--k-r-sm) 0 0 !important;
+    padding: 0.5rem 1rem !important;
+    color: var(--k-fg-2) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    border: 1px solid transparent !important;
+    border-bottom: none !important;
+  }
+  [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    color: var(--k-fg-0) !important;
+    background: var(--k-bg-1) !important;
+    border-color: var(--k-bg-2) !important;
+  }
+  [data-testid="stTabs"] [role="tab"]:hover {
+    color: var(--k-fg-0) !important;
+  }
+  /* Hide Streamlit's red/pink active-tab indicator */
+  [data-testid="stTabs"] [role="tablist"] [data-baseweb="tab-highlight"],
+  [data-testid="stTabs"] [data-baseweb="tab-border"] {
+    background: var(--k-accent) !important;
+  }
 </style>
 """
 
@@ -436,6 +479,16 @@ def run_extract(url: str, out_dir: Path) -> tuple[bool, str]:
 def run_render(json_path: Path) -> tuple[bool, str]:
     proc = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "render_moodboard.py"), str(json_path)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT,
+    )
+    if proc.returncode != 0:
+        return False, proc.stderr or proc.stdout
+    return True, proc.stdout
+
+
+def run_styleguide(json_path: Path) -> tuple[bool, str]:
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "generate_styleguide.py"), str(json_path)],
         capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT,
     )
     if proc.returncode != 0:
@@ -485,14 +538,26 @@ def render_swatches(colors: list[dict], cols_per_row: int = 6) -> None:
             )
 
 
-def render_type_scale(samples: dict) -> None:
+_PX_RE = re.compile(r"(\d+(?:\.\d+)?)px")
+
+
+def _cap_px(size: str, cap_px: int | None) -> str:
+    if not cap_px:
+        return size
+    m = _PX_RE.match(size)
+    if m and float(m.group(1)) > cap_px:
+        return f"{cap_px}px"
+    return size
+
+
+def render_type_scale(samples: dict, cap_px: int | None = None) -> None:
     sample_text = "The quick brown fox jumps over the lazy dog"
     rows = []
     for tag, s in samples.items():
         if not s:
             continue
         family = s["fontFamily"]
-        size = s["fontSize"]
+        size = _cap_px(s["fontSize"], cap_px)
         weight = s["fontWeight"]
         lh = s["lineHeight"]
         primary_family = family.split(",")[0].strip().strip('"\'')
@@ -595,31 +660,118 @@ def render_results(out_dir: Path, data: dict) -> None:
     section_header("download", "Export")
     moodboard = out_dir / "moodboard.md"
     styles_json = out_dir / "styles.json"
+    styleguide = out_dir / "styleguide.md"
 
-    dl1, dl2, dl3 = st.columns(3)
-    if moodboard.exists():
+    dl1, dl2, dl3, dl4 = st.columns(4)
+    if styleguide.exists():
         dl1.download_button(
+            "styleguide.md",
+            data=styleguide.read_bytes(),
+            file_name=f"{out_dir.name}-styleguide.md",
+            mime="text/markdown",
+            help="Drop into .claude/skills/ as a Claude Code Skill",
+            use_container_width=True,
+        )
+    if moodboard.exists():
+        dl2.download_button(
             "moodboard.md",
             data=moodboard.read_bytes(),
-            file_name="moodboard.md",
+            file_name=f"{out_dir.name}-moodboard.md",
             mime="text/markdown",
+            help="Human-readable visual reference",
             use_container_width=True,
         )
     if styles_json.exists():
-        dl2.download_button(
+        dl3.download_button(
             "styles.json",
             data=styles_json.read_bytes(),
-            file_name="styles.json",
+            file_name=f"{out_dir.name}-styles.json",
             mime="application/json",
+            help="Raw extraction data",
             use_container_width=True,
         )
-    dl3.download_button(
-        "Download as ZIP",
+    dl4.download_button(
+        "Download ZIP",
         data=make_zip(out_dir),
-        file_name=f"{out_dir.name}-moodboard.zip",
+        file_name=f"{out_dir.name}-styles.zip",
         mime="application/zip",
+        help="Everything bundled (markdown, JSON, screenshots)",
         use_container_width=True,
     )
+
+
+def render_compare_view() -> None:
+    if not OUTPUTS_DIR.exists():
+        st.info("No extractions yet — use the **Extract** tab first.")
+        return
+    sites = sorted(
+        [d for d in OUTPUTS_DIR.iterdir() if d.is_dir() and (d / "styles.json").exists()],
+        key=lambda d: d.name,
+    )
+    if len(sites) < 2:
+        st.info("Extract at least two URLs first, then come back here.")
+        return
+
+    site_names = [d.name for d in sites]
+    col_a, col_b = st.columns(2)
+    a_name = col_a.selectbox("Site A", site_names, index=0, key="cmp_a")
+    default_b = 1 if site_names[0] == a_name else 0
+    b_name = col_b.selectbox("Site B", site_names, index=default_b, key="cmp_b")
+
+    if a_name == b_name:
+        st.warning("Pick two different sites.")
+        return
+
+    dir_a = OUTPUTS_DIR / a_name
+    dir_b = OUTPUTS_DIR / b_name
+    data_a = json.loads((dir_a / "styles.json").read_text(encoding="utf-8"))
+    data_b = json.loads((dir_b / "styles.json").read_text(encoding="utf-8"))
+
+    inject_google_fonts(
+        list(set(data_a.get("googleFonts", []) + data_b.get("googleFonts", [])))
+    )
+
+    pane_a, pane_b = st.columns(2)
+    for pane, dir_, data in [(pane_a, dir_a, data_a), (pane_b, dir_b, data_b)]:
+        with pane:
+            st.markdown(f"#### {data['title'] or '—'}")
+            st.markdown(
+                f'<div class="site-meta"><a href="{data["url"]}" target="_blank">'
+                f'{data["url"]}{icon("external-link", 12)}</a></div>',
+                unsafe_allow_html=True,
+            )
+            fold = dir_ / "screenshot-fold.png"
+            if fold.exists():
+                st.image(str(fold), use_container_width=True)
+
+            st.markdown(
+                f'<div class="section-h">{icon("palette", 14)}<span>Foreground</span></div>',
+                unsafe_allow_html=True,
+            )
+            render_swatches(data["colors"][:6], cols_per_row=3)
+
+            st.markdown(
+                f'<div class="section-h">{icon("image", 14)}<span>Background</span></div>',
+                unsafe_allow_html=True,
+            )
+            render_swatches(data["backgrounds"][:6], cols_per_row=3)
+
+            st.markdown(
+                f'<div class="section-h">{icon("type", 14)}<span>Type scale</span></div>',
+                unsafe_allow_html=True,
+            )
+            key_samples = {
+                k: data["samples"].get(k)
+                for k in ["h1", "h2", "body", "button"]
+                if (data.get("samples") or {}).get(k)
+            }
+            render_type_scale(key_samples, cap_px=28)
+
+            st.markdown(
+                f'<div class="section-h">{icon("ruler", 14)}<span>Border radii</span></div>',
+                unsafe_allow_html=True,
+            )
+            render_chips(data["radii"][:6])
 
 
 # ---------- Sidebar ----------
@@ -674,48 +826,66 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-with st.form("extract_form", clear_on_submit=False):
-    col_url, col_btn = st.columns([4, 1])
-    url_input = col_url.text_input(
-        "URL", placeholder="https://stripe.com", label_visibility="collapsed",
-    )
-    submit = col_btn.form_submit_button("Extract", type="primary", use_container_width=True)
+tab_extract, tab_compare = st.tabs(["Extract", "Compare two sites"])
 
-selected_dir: Path | None = None
-
-if submit and url_input:
-    url = normalize_url(url_input)
-    out_dir = OUTPUTS_DIR / domain_for(url)
-    with st.status(f"Extracting **{url}** …", expanded=True) as status:
-        st.markdown(
-            f'<div class="status-line">{icon("globe", 16)}<span>Launching headless Chromium and loading the page…</span></div>',
-            unsafe_allow_html=True,
+with tab_extract:
+    with st.form("extract_form", clear_on_submit=False):
+        col_url, col_btn = st.columns([4, 1])
+        url_input = col_url.text_input(
+            "URL", placeholder="https://stripe.com", label_visibility="collapsed",
         )
-        ok, msg = run_extract(url, out_dir)
-        if not ok:
-            status.update(label="Extraction failed", state="error")
-            st.error(msg)
-            st.stop()
-        st.markdown(
-            f'<div class="status-line">{icon("file-text", 16)}<span>Generating markdown moodboard…</span></div>',
-            unsafe_allow_html=True,
-        )
-        ok2, msg2 = run_render(out_dir / "styles.json")
-        if not ok2:
-            status.update(label="Rendering failed", state="error")
-            st.error(msg2)
-            st.stop()
-        status.update(label="Done", state="complete")
-    st.session_state["selected_dir"] = str(out_dir)
-    selected_dir = out_dir
-elif "selected_dir" in st.session_state:
-    selected_dir = Path(st.session_state["selected_dir"])
+        submit = col_btn.form_submit_button("Extract", type="primary", use_container_width=True)
 
-if selected_dir and (selected_dir / "styles.json").exists():
-    data = json.loads((selected_dir / "styles.json").read_text(encoding="utf-8"))
-    render_results(selected_dir, data)
-else:
-    st.info(
-        "Enter a URL above and click **Extract**. The first run can take 10-30 seconds "
-        "while Chromium loads the page."
-    )
+    selected_dir: Path | None = None
+
+    if submit and url_input:
+        url = normalize_url(url_input)
+        out_dir = OUTPUTS_DIR / domain_for(url)
+        with st.status(f"Extracting **{url}** …", expanded=True) as status:
+            st.markdown(
+                f'<div class="status-line">{icon("globe", 16)}<span>Launching headless Chromium and loading the page…</span></div>',
+                unsafe_allow_html=True,
+            )
+            ok, msg = run_extract(url, out_dir)
+            if not ok:
+                status.update(label="Extraction failed", state="error")
+                st.error(msg)
+                st.stop()
+            st.markdown(
+                f'<div class="status-line">{icon("file-text", 16)}<span>Generating markdown moodboard…</span></div>',
+                unsafe_allow_html=True,
+            )
+            ok2, msg2 = run_render(out_dir / "styles.json")
+            if not ok2:
+                status.update(label="Rendering failed", state="error")
+                st.error(msg2)
+                st.stop()
+            st.markdown(
+                f'<div class="status-line">{icon("wand", 16)}<span>Generating Skill / style guide…</span></div>',
+                unsafe_allow_html=True,
+            )
+            ok3, msg3 = run_styleguide(out_dir / "styles.json")
+            if not ok3:
+                status.update(label="Style-guide generation failed", state="error")
+                st.error(msg3)
+                st.stop()
+            status.update(label="Done", state="complete")
+        st.session_state["selected_dir"] = str(out_dir)
+        selected_dir = out_dir
+    elif "selected_dir" in st.session_state:
+        selected_dir = Path(st.session_state["selected_dir"])
+
+    if selected_dir and (selected_dir / "styles.json").exists():
+        # Backfill styleguide.md for older extractions that predate the generator
+        if not (selected_dir / "styleguide.md").exists():
+            run_styleguide(selected_dir / "styles.json")
+        data = json.loads((selected_dir / "styles.json").read_text(encoding="utf-8"))
+        render_results(selected_dir, data)
+    else:
+        st.info(
+            "Enter a URL above and click **Extract**. The first run can take 10-30 seconds "
+            "while Chromium loads the page."
+        )
+
+with tab_compare:
+    render_compare_view()

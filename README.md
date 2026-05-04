@@ -12,6 +12,8 @@ The moodboard is meant as input for building a new design system, a follow-up Sk
 - **Color palette ranked by visual area** (foreground vs. backgrounds), not just by occurrence count, so dominant brand colors actually surface.
 - **Type scale sampled in the live fonts** — Google Fonts links are detected on the source page and re-injected into the UI, so each `h1`–`h6`/`body`/`p`/`button`/`a` sample renders in its real typeface.
 - **Design tokens** lifted straight from the page: every `--*` CSS custom property on `:root`, plus weighted spacing, border radii, and shadow chips.
+- **Style-guide generator** turns each extraction into a Claude Code Skill (`styleguide.md`) — frontmatter + color tokens mapped to semantic roles + type scale + "how to apply" rules. Drop it under `.claude/skills/<name>/SKILL.md` and Claude will build UIs in that site's style.
+- **Side-by-side compare** — pick two extractions from history and inspect their palettes, type scales, and tokens next to each other.
 - **Two consumption surfaces**: a Streamlit UI for humans, and a CLI plus `SKILL.md` for Claude Code.
 - **Self-hosting demo**: the UI itself was redesigned by extracting kiro.dev with this very tool — see [`.streamlit/config.toml`](.streamlit/config.toml).
 
@@ -44,6 +46,10 @@ Design tokens — chips for radii and spacing, plus the `:root` CSS custom prope
 
 ![Design tokens chips](docs/screenshots/04-tokens.png)
 
+Compare two extractions side-by-side to spot stylistic differences:
+
+![Compare two sites](docs/screenshots/05-compare.png)
+
 ## Quick start — graphical UI (recommended)
 
 Double-click **`start.bat`** (Windows). On first run it installs the dependencies via the `py` launcher; on every run it launches a Streamlit web app in your browser. Paste a URL, hit **Extract**, and the moodboard renders inline with color swatches, type scale, design tokens, and downloadable `moodboard.md` / `styles.json` / zip.
@@ -71,12 +77,16 @@ python scripts/extract.py https://stripe.com
 
 # 2. render moodboard
 python scripts/render_moodboard.py outputs/stripe.com/styles.json
+
+# 3. generate the Skill / style guide
+python scripts/generate_styleguide.py outputs/stripe.com/styles.json
 ```
 
 Outputs land in `outputs/<domain>/`:
 
 - `styles.json` — raw extracted tokens
 - `moodboard.md` — human-readable moodboard
+- `styleguide.md` — Claude Code Skill (frontmatter + tokens + rules)
 - `screenshot-fold.png` — above-the-fold capture
 - `screenshot-full.png` — full-page capture
 
@@ -97,7 +107,8 @@ The trigger phrases live in [SKILL.md](SKILL.md).
 ├── requirements.txt                # playwright, streamlit, starlette
 ├── scripts/
 │   ├── extract.py                  # Playwright headless extractor
-│   └── render_moodboard.py         # styles.json → moodboard.md
+│   ├── render_moodboard.py         # styles.json → moodboard.md
+│   └── generate_styleguide.py      # styles.json → Skill-format styleguide.md
 ├── docs/
 │   ├── capture_screenshots.py      # regenerates the screenshots above
 │   └── screenshots/                # README assets
