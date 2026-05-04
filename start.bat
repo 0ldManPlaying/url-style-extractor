@@ -6,12 +6,12 @@ echo.
 
 py -c "import streamlit" 2>nul
 if errorlevel 1 (
-    echo Eerste keer opstarten - dependencies installeren...
+    echo First-time setup - installing dependencies...
     echo.
     py -m pip install -r requirements.txt
     if errorlevel 1 (
         echo.
-        echo Pip install mislukt. Is Python geinstalleerd? https://www.python.org/downloads/
+        echo Pip install failed. Is Python installed? https://www.python.org/downloads/
         pause
         exit /b 1
     )
@@ -19,12 +19,12 @@ if errorlevel 1 (
 
 py -c "from playwright.sync_api import sync_playwright; sync_playwright().start().chromium.launch().close()" 2>nul
 if errorlevel 1 (
-    echo Chromium voor Playwright installeren...
+    echo Installing Chromium for Playwright...
     py -m playwright install chromium
 )
 
 echo.
-echo Streamlit starten - de browser opent automatisch...
-echo Druk Ctrl+C om te stoppen.
+echo Starting Streamlit - the browser will open automatically...
+echo Press Ctrl+C to stop.
 echo.
 py -m streamlit run app.py
