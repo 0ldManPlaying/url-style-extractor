@@ -1,24 +1,52 @@
 # URL Style Extractor
 
-A Claude Code Skill that extracts the visual design language from any live website URL and produces a markdown moodboard — colors, fonts, type scale, spacing, shadows, design tokens, and screenshots.
+A Claude Code Skill (and standalone Streamlit app) that reverse-engineers the visual design language of any live website. Paste a URL, hit Extract, and walk away with a hex-coded color palette, the type scale rendered in the page's actual fonts, design tokens, and screenshots — packaged as a markdown moodboard.
 
-The moodboard is intended as input for building a new design system, follow-up Skill, redesign brief, or style guide.
+The moodboard is meant as input for building a new design system, a follow-up Skill, a redesign brief, or a style guide.
 
-## What it does
+![Home screen](docs/screenshots/01-home.png)
 
-Given a URL, it:
+## Highlights
 
-1. Launches headless Chromium (Playwright), loads the page at 1440×900.
-2. Walks every visible element and weighs `color`, `background-color`, `font-family`, `border-radius`, `box-shadow`, `padding/margin/gap` by bounding-box area.
-3. Samples computed styles for `h1`–`h6`, `body`, `p`, `button`, `a` to capture the type scale.
-4. Reads CSS custom properties from `:root`.
-5. Detects Google Fonts via `<link>` tags and same-origin `@font-face` rules.
-6. Captures above-the-fold and full-page screenshots.
-7. Emits `styles.json`, then renders it to `moodboard.md` with hex swatches and a tokens block.
+- **One-click extraction** from any public URL via headless Chromium.
+- **Color palette ranked by visual area** (foreground vs. backgrounds), not just by occurrence count, so dominant brand colors actually surface.
+- **Type scale sampled in the live fonts** — Google Fonts links are detected on the source page and re-injected into the UI, so each `h1`–`h6`/`body`/`p`/`button`/`a` sample renders in its real typeface.
+- **Design tokens** lifted straight from the page: every `--*` CSS custom property on `:root`, plus weighted spacing, border radii, and shadow chips.
+- **Two consumption surfaces**: a Streamlit UI for humans, and a CLI plus `SKILL.md` for Claude Code.
+- **Self-hosting demo**: the UI itself was redesigned by extracting kiro.dev with this very tool — see [`.streamlit/config.toml`](.streamlit/config.toml).
+
+## What it captures
+
+| Section | Source | How it ranks |
+|---|---|---|
+| Foreground colors | `getComputedStyle(el).color` | Σ of element area in px² |
+| Background colors | `getComputedStyle(el).backgroundColor` | Σ of element area in px² |
+| Fonts | `font-family` on every visible element | Σ of element area in px² |
+| Type scale | computed style on `h1`-`h6`, `body`, `p`, `button`, `a` | direct sample |
+| Border radii / shadows | `border-radius`, `box-shadow` | frequency |
+| Spacing | `padding`, `margin`, `gap` | frequency |
+| CSS custom properties | every `--*` on `:root` | direct dump |
+| Google Fonts | `<link href*="fonts.googleapis.com">` | direct |
+| `@font-face` | same-origin stylesheets | direct |
+| Screenshots | Playwright | 1440×900 above-the-fold + full page |
+
+## Screenshots
+
+Extraction results page rendered in the Kiro-derived dark theme:
+
+![Results — site title and screenshot](docs/screenshots/02-results-top.png)
+
+Type scale rendered live in the source page's actual font stack:
+
+![Type scale rendered in the source page's actual fonts](docs/screenshots/03-typography.png)
+
+Design tokens — chips for radii and spacing, plus the `:root` CSS custom properties dump:
+
+![Design tokens chips](docs/screenshots/04-tokens.png)
 
 ## Quick start — graphical UI (recommended)
 
-Double-click **`start.bat`** (Windows). On first run it installs the dependencies; on every run it launches a Streamlit web app in your browser. Paste a URL, hit **Extract**, and the moodboard renders inline with color swatches, type scale, and downloadable `moodboard.md` / `styles.json` / zip.
+Double-click **`start.bat`** (Windows). On first run it installs the dependencies via the `py` launcher; on every run it launches a Streamlit web app in your browser. Paste a URL, hit **Extract**, and the moodboard renders inline with color swatches, type scale, design tokens, and downloadable `moodboard.md` / `styles.json` / zip.
 
 The sidebar keeps a history of every URL you've extracted, so you can flip back and forth without re-running.
 
@@ -35,7 +63,7 @@ Then either run the UI:
 python -m streamlit run app.py
 ```
 
-Or use the CLI directly:
+…or use the CLI directly:
 
 ```bash
 # 1. extract
@@ -58,12 +86,30 @@ This repo *is* a skill. Drop it into your `.claude/skills/` directory (or instal
 
 The trigger phrases live in [SKILL.md](SKILL.md).
 
+## Project layout
+
+```
+.
+├── SKILL.md                        # Claude Code skill manifest + trigger phrases
+├── app.py                          # Streamlit UI
+├── start.bat                       # Windows double-click launcher
+├── .streamlit/config.toml          # Dark theme + Kiro purple primary
+├── requirements.txt                # playwright, streamlit, starlette
+├── scripts/
+│   ├── extract.py                  # Playwright headless extractor
+│   └── render_moodboard.py         # styles.json → moodboard.md
+├── docs/
+│   ├── capture_screenshots.py      # regenerates the screenshots above
+│   └── screenshots/                # README assets
+└── outputs/                        # gitignored — extraction results
+```
+
 ## Limits
 
-- Cross-origin stylesheets may not expose their rules to the page (CORS), so `@font-face` data can be incomplete.
-- Bot-detection (Cloudflare etc.) will block headless Chromium on some sites.
-- Authenticated/private pages aren't supported out of the box.
-- Color weighting is by element area — useful for finding dominant colors, but a small accent used in many places (e.g. a brand-colored icon) may rank lower than a large neutral background.
+- Cross-origin stylesheets may not expose their rules to the page (CORS), so `@font-face` data can be incomplete. Google Fonts is still detected via `<link>` tags.
+- Bot-detection (Cloudflare etc.) blocks headless Chromium on some sites.
+- Authenticated / private pages aren't supported out of the box.
+- Color weighting is by element area — useful for finding dominant colors, but a small accent used in many places (a brand-colored icon, a focused-state ring) may rank lower than a large neutral background.
 
 ## License
 
